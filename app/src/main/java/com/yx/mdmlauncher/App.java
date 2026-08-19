@@ -11,6 +11,7 @@ public class App extends Application {
     private SharedPreferences prefs;
     private Handler mainHandler;
 
+    // 退出密码（特定手段之一：密码验证）
     public static final String EXIT_PASSWORD = "yxmdm2024";
     public static final String PREFS_NAME = "mdm_launcher_prefs";
     public static final String KEY_LOCKED = "is_locked";
@@ -22,9 +23,8 @@ public class App extends Application {
         prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         mainHandler = new Handler(Looper.getMainLooper());
 
-        if (!prefs.contains(KEY_LOCKED)) {
-            prefs.edit().putBoolean(KEY_LOCKED, true).apply();
-        }
+        // 应用启动时总是重置为锁定状态（退出管控后重启应用即恢复）
+        prefs.edit().putBoolean(KEY_LOCKED, true).apply();
     }
 
     public static App getInstance() {
