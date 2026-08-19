@@ -70,7 +70,7 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate();
+        super.onCreate(savedInstanceState);
 
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(
@@ -89,8 +89,7 @@ public class MainActivity extends Activity {
             FrameLayout.LayoutParams.MATCH_PARENT,
             FrameLayout.LayoutParams.WRAP_CONTENT
         );
-        gridParams.gravity = android.view.Gravity.CENTER_VERTICAL;
-        gridParams.topMargin = dpToPx(200);
+        gridParams.gravity = android.view.Gravity.TOP | android.view.Gravity.CENTER_HORIZONTAL;
         appGridLayout.setLayoutParams(gridParams);
 
         for (int i = 0; i < ALLOWED_PACKAGES.length; i++) {
@@ -127,6 +126,18 @@ public class MainActivity extends Activity {
         rootLayout.addView(userCenterView);
 
         setContentView(rootLayout);
+
+        // 动态设置应用图标位置：屏幕正中间偏上（约32%高度处）
+        rootLayout.post(new Runnable() {
+            @Override
+            public void run() {
+                int screenHeight = rootLayout.getHeight();
+                int topMargin = (int) (screenHeight * 0.32);
+                FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) appGridLayout.getLayoutParams();
+                params.topMargin = topMargin;
+                appGridLayout.setLayoutParams(params);
+            }
+        });
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_SCREEN_OFF);
@@ -288,7 +299,6 @@ public class MainActivity extends Activity {
     }
 
     private void exitLockMode() {
-        // 永久退出管控，直到应用重新启动
         App.getInstance().setLocked(false);
         Toast.makeText(this, "已退出管控模式，重新启动应用可恢复", Toast.LENGTH_LONG).show();
 
