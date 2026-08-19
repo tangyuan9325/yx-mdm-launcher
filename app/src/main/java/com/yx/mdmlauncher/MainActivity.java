@@ -86,10 +86,10 @@ public class MainActivity extends Activity {
         appGridLayout.setOrientation(LinearLayout.HORIZONTAL);
         appGridLayout.setGravity(android.view.Gravity.CENTER);
         FrameLayout.LayoutParams gridParams = new FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT,
             FrameLayout.LayoutParams.WRAP_CONTENT
         );
-        gridParams.gravity = android.view.Gravity.TOP | android.view.Gravity.CENTER_HORIZONTAL;
+        gridParams.gravity = android.view.Gravity.TOP | android.view.Gravity.LEFT;
         appGridLayout.setLayoutParams(gridParams);
 
         for (int i = 0; i < ALLOWED_PACKAGES.length; i++) {
@@ -106,20 +106,11 @@ public class MainActivity extends Activity {
         ImageView userBtn = new ImageView(this);
         userBtn.setImageResource(R.drawable.ic_user);
         userBtn.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        FrameLayout.LayoutParams btnParams = new FrameLayout.LayoutParams(dpToPx(48), dpToPx(48));
-        btnParams.gravity = android.view.Gravity.TOP | android.view.Gravity.RIGHT;
-        btnParams.topMargin = dpToPx(40);
-        btnParams.rightMargin = dpToPx(20);
+        FrameLayout.LayoutParams btnParams = new FrameLayout.LayoutParams(dpToPx(72), dpToPx(72));
+        btnParams.gravity = android.view.Gravity.TOP | android.view.Gravity.CENTER_HORIZONTAL;
         userBtn.setLayoutParams(btnParams);
         userBtn.setOnClickListener(v -> toggleUserCenter());
         rootLayout.addView(userBtn);
-
-        View exitHotspot = new View(this);
-        FrameLayout.LayoutParams hotspotParams = new FrameLayout.LayoutParams(dpToPx(120), dpToPx(120));
-        hotspotParams.gravity = android.view.Gravity.TOP | android.view.Gravity.RIGHT;
-        exitHotspot.setLayoutParams(hotspotParams);
-        exitHotspot.setOnClickListener(v -> handleCornerTap());
-        rootLayout.addView(exitHotspot);
 
         userCenterView = createUserCenterView();
         userCenterView.setVisibility(View.GONE);
@@ -127,15 +118,20 @@ public class MainActivity extends Activity {
 
         setContentView(rootLayout);
 
-        // 动态设置应用图标位置：屏幕正中间偏上（约32%高度处）
         rootLayout.post(new Runnable() {
             @Override
             public void run() {
                 int screenHeight = rootLayout.getHeight();
-                int topMargin = (int) (screenHeight * 0.32);
-                FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) appGridLayout.getLayoutParams();
-                params.topMargin = topMargin;
-                appGridLayout.setLayoutParams(params);
+                int screenWidth = rootLayout.getWidth();
+
+                FrameLayout.LayoutParams gridParams = (FrameLayout.LayoutParams) appGridLayout.getLayoutParams();
+                gridParams.topMargin = (int) (screenHeight * 0.58);
+                gridParams.leftMargin = (int) (screenWidth * 0.08);
+                appGridLayout.setLayoutParams(gridParams);
+
+                FrameLayout.LayoutParams btnParams = (FrameLayout.LayoutParams) userBtn.getLayoutParams();
+                btnParams.topMargin = (int) (screenHeight * 0.22);
+                userBtn.setLayoutParams(btnParams);
             }
         });
 
@@ -188,55 +184,22 @@ public class MainActivity extends Activity {
 
     private View createUserCenterView() {
         FrameLayout container = new FrameLayout(this);
-        container.setBackgroundColor(Color.parseColor("#CC000000"));
+        container.setBackgroundResource(R.drawable.ic_user_center);
 
-        LinearLayout panel = new LinearLayout(this);
-        panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setBackgroundColor(Color.WHITE);
-        panel.setPadding(dpToPx(30), dpToPx(30), dpToPx(30), dpToPx(30));
-        FrameLayout.LayoutParams panelParams = new FrameLayout.LayoutParams(dpToPx(300), FrameLayout.LayoutParams.WRAP_CONTENT);
-        panelParams.gravity = android.view.Gravity.CENTER;
-        panel.setLayoutParams(panelParams);
+        View restoreBtn = new View(this);
+        restoreBtn.setBackgroundColor(Color.TRANSPARENT);
+        FrameLayout.LayoutParams restoreParams = new FrameLayout.LayoutParams(dpToPx(90), dpToPx(90));
+        restoreParams.gravity = android.view.Gravity.TOP | android.view.Gravity.RIGHT;
+        restoreParams.topMargin = dpToPx(20);
+        restoreParams.rightMargin = dpToPx(20);
+        restoreBtn.setLayoutParams(restoreParams);
+        restoreBtn.setOnClickListener(v -> {
+            toggleUserCenter();
+            showExitPasswordDialog();
+        });
+        container.addView(restoreBtn);
 
-        ImageView userIcon = new ImageView(this);
-        userIcon.setImageResource(R.drawable.ic_user_center);
-        userIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dpToPx(80), dpToPx(80));
-        iconParams.gravity = android.view.Gravity.CENTER_HORIZONTAL;
-        iconParams.bottomMargin = dpToPx(20);
-        userIcon.setLayoutParams(iconParams);
-        panel.addView(userIcon);
-
-        TextView title = new TextView(this);
-        title.setText("用户中心");
-        title.setTextSize(20);
-        title.setTextColor(Color.BLACK);
-        title.setGravity(android.view.Gravity.CENTER);
-        title.setPadding(0, 0, 0, dpToPx(20));
-        panel.addView(title);
-
-        String[] infoItems = {"设备状态：已管控", "管控模式：学习模式", "可用应用：3个", "版本：v1.0.0"};
-        for (String info : infoItems) {
-            TextView tv = new TextView(this);
-            tv.setText(info);
-            tv.setTextSize(14);
-            tv.setTextColor(Color.DKGRAY);
-            tv.setPadding(0, dpToPx(8), 0, dpToPx(8));
-            panel.addView(tv);
-        }
-
-        android.widget.Button closeBtn = new android.widget.Button(this);
-        closeBtn.setText("关闭");
-        closeBtn.setOnClickListener(v -> toggleUserCenter());
-        LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        btnParams.topMargin = dpToPx(20);
-        closeBtn.setLayoutParams(btnParams);
-        panel.addView(closeBtn);
-
-        container.addView(panel);
         container.setOnClickListener(v -> toggleUserCenter());
-        panel.setOnClickListener(v -> {});
 
         return container;
     }
@@ -283,7 +246,7 @@ public class MainActivity extends Activity {
 
         new AlertDialog.Builder(this)
             .setTitle("管理模式")
-            .setMessage("连续点击右上角触发管理入口\n请输入密码以退出管控（重新启动应用可恢复）")
+            .setMessage("请输入密码以退出管控（重新启动应用可恢复）")
             .setView(input)
             .setPositiveButton("确认", (dialog, which) -> {
                 String pwd = input.getText().toString();
