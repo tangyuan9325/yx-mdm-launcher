@@ -1,0 +1,98 @@
+name: Build and Release APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version tag (e.g. v1.4.0)'
+        required: true
+        default: 'v1.4.0'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create and push tag (manual dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -f ${{ github.event.inputs.version }}
+          git push -f origin ${{ github.event.inputs.version }}
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept licenses and install SDK components
+        shell: pwsh
+        run: |
+          echo "y" | sdkmanager "build-tools;36.0.0" "platforms;android-36"
+          Write-Host "ANDROID_HOME=$env:ANDROID_HOME"
+          Write-Host "Build tools:"
+          Get-ChildItem "$env:ANDROID_HOME\build-tools" -ErrorAction SilentlyContinue | Select-Object Name
+
+      - name: Decode binary resources
+        shell: pwsh
+        run: |
+          if (Test-Path ".\res-binary") {
+            powershell -ExecutionPolicy Bypass -File .\decode-resources.ps1
+          } else {
+            Write-Host "res-binary directory not found, skipping decode"
+          }
+
+      - name: Decode signing keystore
+        shell: pwsh
+        run: |
+          $b64File = ".\tools\yx-release.keystore.b64"
+          if (Test-Path $b64File) {
+            $b64 = Get-Content $b64File -Raw
+            $bytes = [Convert]::FromBase64String($b64)
+            [IO.File]::WriteAllBytes(".\tools\yx-release.keystore", $bytes)
+            Write-Host "Keystore decoded: $($bytes.Length) bytes"
+          } else {
+            Write-Host "Keystore b64 not found, build may fail at signing step"
+          }
+
+      - name: Build APK
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File .\build.ps1
+
+      - name: Verify APK
+        shell: pwsh
+        run: |
+          $apk = ".\output\yx-mdm-launcher.apk"
+          if (Test-Path $apk) {
+            $size = [math]::Round((Get-Item $apk).Length / 1MB, 2)
+            Write-Host "APK built successfully: $apk ($size MB)"
+          } else {
+            Write-Host "APK not found!"
+            exit 1
+          }
+
+      - name: Create Release and upload APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.version || github.ref_name }}
+          name: ${{ github.event.inputs.version || github.ref_name }}
+          files: output/yx-mdm-launcher.apk
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
