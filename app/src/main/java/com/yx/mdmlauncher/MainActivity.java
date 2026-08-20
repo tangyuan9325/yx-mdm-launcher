@@ -58,6 +58,10 @@ public class MainActivity extends Activity {
     private LinearLayout appGridLayout;
     private View userCenterView;
 
+    private static final int RESTORE_TAP_COUNT = 7;
+    private int restoreTapCount = 0;
+    private long lastRestoreTapTime = 0;
+
     private BroadcastReceiver screenReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -193,10 +197,7 @@ public class MainActivity extends Activity {
         restoreParams.topMargin = dpToPx(20);
         restoreParams.rightMargin = dpToPx(20);
         restoreBtn.setLayoutParams(restoreParams);
-        restoreBtn.setOnClickListener(v -> {
-            toggleUserCenter();
-            showExitPasswordDialog();
-        });
+        restoreBtn.setOnClickListener(v -> handleRestoreTap());
         container.addView(restoreBtn);
 
         container.setOnClickListener(v -> toggleUserCenter());
@@ -205,8 +206,46 @@ public class MainActivity extends Activity {
     }
 
     private void toggleUserCenter() {
-        isUserCenterShown = !isUserCenterShown;
-        userCenterView.setVisibility(isUserCenterShown ? View.VISIBLE : View.GONE);
+        if (isUserCenterShown) {
+            isUserCenterShown = false;
+            userCenterView.animate()
+                .alpha(0f)
+                .setDuration(250)
+                .withEndAction(new Runnable() {
+                    @Override
+                    public void run() {
+                        userCenterView.setVisibility(View.GONE);
+                        restoreTapCount = 0;
+                    }
+                })
+                .start();
+        } else {
+            isUserCenterShown = true;
+            restoreTapCount = 0;
+            userCenterView.setAlpha(0f);
+            userCenterView.setVisibility(View.VISIBLE);
+            userCenterView.animate()
+                .alpha(1f)
+                .setDuration(250)
+                .start();
+        }
+    }
+
+    private void handleRestoreTap() {
+        long now = System.currentTimeMillis();
+        if (now - lastRestoreTapTime > 2000) {
+            restoreTapCount = 0;
+        }
+        restoreTapCount++;
+        lastRestoreTapTime = now;
+
+        if (restoreTapCount >= RESTORE_TAP_COUNT) {
+            restoreTapCount = 0;
+            toggleUserCenter();
+            showExitPasswordDialog();
+        } else if (restoreTapCount >= 5) {
+            Toast.makeText(this, "继续点击 " + (RESTORE_TAP_COUNT - restoreTapCount) + " 次进入管理", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void launchApp(String packageName) {
