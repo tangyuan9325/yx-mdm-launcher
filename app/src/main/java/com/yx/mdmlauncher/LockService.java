@@ -89,6 +89,10 @@ public class LockService extends Service {
     }
 
     private void bringMainActivityToFront() {
+        if (App.getInstance().isInAllowedAppGracePeriod()) {
+            return;
+        }
+
         try {
             Intent intent = new Intent(this, MainActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
