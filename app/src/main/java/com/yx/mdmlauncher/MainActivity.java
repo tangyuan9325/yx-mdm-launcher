@@ -75,7 +75,6 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(
             WindowManager.LayoutParams.FLAG_FULLSCREEN,
@@ -127,12 +126,10 @@ public class MainActivity extends Activity {
             public void run() {
                 int screenHeight = rootLayout.getHeight();
                 int screenWidth = rootLayout.getWidth();
-
                 FrameLayout.LayoutParams gridParams = (FrameLayout.LayoutParams) appGridLayout.getLayoutParams();
                 gridParams.topMargin = (int) (screenHeight * 0.58);
                 gridParams.leftMargin = (int) (screenWidth * 0.08);
                 appGridLayout.setLayoutParams(gridParams);
-
                 FrameLayout.LayoutParams btnParams = (FrameLayout.LayoutParams) userBtn.getLayoutParams();
                 btnParams.topMargin = (int) (screenHeight * 0.22);
                 userBtn.setLayoutParams(btnParams);
@@ -149,7 +146,6 @@ public class MainActivity extends Activity {
         }
 
         startService(new Intent(this, LockService.class));
-
         requestRequiredPermissions();
     }
 
@@ -275,6 +271,7 @@ public class MainActivity extends Activity {
         try {
             Intent intent = getPackageManager().getLaunchIntentForPackage(packageName);
             if (intent != null) {
+                App.getInstance().setUserLaunchedAllowedApp(true);
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(intent);
             } else {
@@ -308,7 +305,7 @@ public class MainActivity extends Activity {
 
         new AlertDialog.Builder(this)
             .setTitle("管理模式")
-            .setMessage("请输入密码以退出管控（重新启动应用可恢复）")
+            .setMessage("连续点击右上角触发管理入口\n请输入密码以退出管控（重新启动应用可恢复）")
             .setView(input)
             .setPositiveButton("确认", (dialog, which) -> {
                 String pwd = input.getText().toString();
@@ -396,21 +393,27 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        App.getInstance().setUserLaunchedAllowedApp(false);
+    }
+
+    @Override
     protected void onPause() {
         super.onPause();
-        if (App.getInstance().isLocked()) {
+        if (App.getInstance().isLocked() && !App.getInstance().isInAllowedAppGracePeriod()) {
             handler.postDelayed(() -> {
                 Intent intent = new Intent(this, MainActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
                 startActivity(intent);
-            }, 100);
+            }, 2000);
         }
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        if (App.getInstance().isLocked()) {
+        if (App.getInstance().isLocked() && !App.getInstance().isInAllowedAppGracePeriod()) {
             Intent intent = new Intent(this, MainActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
             startActivity(intent);
