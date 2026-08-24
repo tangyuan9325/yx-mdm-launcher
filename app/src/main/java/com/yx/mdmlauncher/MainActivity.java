@@ -149,6 +149,29 @@ public class MainActivity extends Activity {
         }
 
         startService(new Intent(this, LockService.class));
+
+        requestRequiredPermissions();
+    }
+
+    private void requestRequiredPermissions() {
+        if (Build.VERSION.SDK_INT >= 33) {
+            if (checkSelfPermission("android.permission.POST_NOTIFICATIONS")
+                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 1001);
+            }
+        }
+        try {
+            Intent intent = new Intent();
+            String packageName = getPackageName();
+            android.os.PowerManager pm = (android.os.PowerManager) getSystemService(POWER_SERVICE);
+            if (pm != null && !pm.isIgnoringBatteryOptimizations(packageName)) {
+                intent.setAction(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                intent.setData(android.net.Uri.parse("package:" + packageName));
+                startActivity(intent);
+            }
+        } catch (Exception e) {
+            // ignore
+        }
     }
 
     private View createAppIconView(int index) {
