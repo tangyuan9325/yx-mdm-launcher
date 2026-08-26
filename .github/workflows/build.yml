@@ -37,7 +37,24 @@ jobs:
         run: |
           $files = Get-ChildItem "res-binary" -Filter "*.b64"
           foreach ($f in $files) {
-            $relPath = $f.BaseName -replace '_', '/'
+            # 文件名格式: app_src_main_res_<type>_<filename>.png.b64
+            # 去掉 .b64 后缀和 app_src_main_res_ 前缀
+            $name = $f.BaseName
+            $prefix = "app_src_main_res_"
+            if ($name.StartsWith($prefix)) {
+              $remainder = $name.Substring($prefix.Length)
+              # 第一个下划线之前是资源类型目录，之后是文件名(保留下划线)
+              $idx = $remainder.IndexOf('_')
+              if ($idx -gt 0) {
+                $resType = $remainder.Substring(0, $idx)
+                $fileName = $remainder.Substring($idx + 1)
+                $relPath = "app/src/main/res/$resType/$fileName"
+              } else {
+                $relPath = "app/src/main/res/$remainder"
+              }
+            } else {
+              $relPath = $name -replace '_', '/'
+            }
             $fullPath = Join-Path $PWD $relPath
             $dir = Split-Path $fullPath -Parent
             if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
