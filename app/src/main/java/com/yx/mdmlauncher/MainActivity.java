@@ -309,7 +309,7 @@ public class MainActivity extends Activity {
             .setView(input)
             .setPositiveButton("确认", (dialog, which) -> {
                 String pwd = input.getText().toString();
-                if (App.EXIT_PASSWORD.equals(pwd)) {
+                if (App.getInstance().verifyPassword(pwd)) {
                     exitLockMode();
                 } else {
                     Toast.makeText(MainActivity.this, "密码错误", Toast.LENGTH_SHORT).show();
