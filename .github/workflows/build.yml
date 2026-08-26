@@ -1,0 +1,54 @@
+name: Build & Release APK
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  release:
+    types: [created]
+
+jobs:
+  build-apk:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android Build Tools
+        run: |
+          sdkmanager "build-tools;36.0.0" "platforms;android-36"
+
+      - name: Decode Keystore
+        run: |
+          $base64 = Get-Content "tools\yx-release.keystore.b64" -Raw
+          [System.IO.File]::WriteAllBytes("tools\yx-release.keystore", [System.Convert]::FromBase64String($base64))
+
+      - name: Build APK
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+        run: |
+          powershell -ExecutionPolicy Bypass -File build.ps1
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: yx-mdm-launcher-apk
+          path: output/yx-mdm-launcher.apk
+
+      - name: Upload to Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: output/yx-mdm-launcher.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
