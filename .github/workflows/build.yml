@@ -33,6 +33,19 @@ jobs:
           $base64 = Get-Content "tools\yx-release.keystore.b64" -Raw
           [System.IO.File]::WriteAllBytes("tools\yx-release.keystore", [System.Convert]::FromBase64String($base64))
 
+      - name: Decode Binary Resources
+        run: |
+          $files = Get-ChildItem "res-binary" -Filter "*.b64"
+          foreach ($f in $files) {
+            $relPath = $f.BaseName -replace '_', '/'
+            $fullPath = Join-Path $PWD $relPath
+            $dir = Split-Path $fullPath -Parent
+            if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+            $base64 = Get-Content $f.FullName -Raw
+            [System.IO.File]::WriteAllBytes($fullPath, [System.Convert]::FromBase64String($base64))
+            Write-Host "  Decoded: $relPath"
+          }
+
       - name: Build APK
         env:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
